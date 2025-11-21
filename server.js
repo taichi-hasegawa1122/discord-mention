@@ -444,37 +444,61 @@ app.get('/api/result/:progressId', (req, res) => {
 
 // APIエンドポイント: 接続状態を確認
 app.get('/api/status', async (req, res) => {
+  // 環境変数の確認
+  const hasToken = !!process.env.DISCORD_TOKEN;
+  const isVercel = !!(process.env.VERCEL || process.env.VERCEL_ENV);
+  
+  // デバッグ情報
+  const debugInfo = {
+    hasToken: hasToken,
+    isVercel: isVercel,
+    hasClient: discordClient !== null,
+    isReady: discordClient ? discordClient.isReady() : false,
+  };
+  
   // Vercel環境で接続されていない場合、再接続を試みる
-  if ((process.env.VERCEL || process.env.VERCEL_ENV) && (!discordClient || !discordClient.isReady())) {
-    if (!process.env.DISCORD_TOKEN) {
+  if (isVercel && (!discordClient || !discordClient.isReady())) {
+    if (!hasToken) {
       return res.json({
         connected: false,
         guilds: [],
-        error: 'DISCORD_TOKEN環境変数が設定されていません。Vercel Dashboardで設定してください。',
+        error: 'DISCORD_TOKEN環境変数が設定されていません。Vercel Dashboard → Settings → Environment Variables で設定してください。',
+        debug: debugInfo,
       });
     }
     
     // 再接続を試みる
     if (!discordClient) {
       try {
+        console.log('Discord Bot再接続を試みます...');
         discordClient = await initializeDiscord();
+        if (discordClient) {
+          console.log('Discord Bot再接続成功');
+        } else {
+          console.error('Discord Bot再接続失敗: initializeDiscordがnullを返しました');
+        }
       } catch (error) {
         console.error('Discord Bot再接続エラー:', error);
       }
     }
   }
   
+  const connected = discordClient !== null && discordClient.isReady();
+  
   res.json({
-    connected: discordClient !== null && discordClient.isReady(),
-    guilds: discordClient && discordClient.isReady()
+    connected: connected,
+    guilds: connected
       ? discordClient.guilds.cache.map(guild => ({
           id: guild.id,
           name: guild.name,
         }))
       : [],
-    error: (!discordClient || !discordClient.isReady()) && !process.env.DISCORD_TOKEN
-      ? 'DISCORD_TOKEN環境変数が設定されていません'
+    error: !connected
+      ? (hasToken 
+          ? 'Discord Botが接続されていません。Vercel DashboardのLogsを確認してください。'
+          : 'DISCORD_TOKEN環境変数が設定されていません。Vercel Dashboard → Settings → Environment Variables で設定してください。')
       : undefined,
+    debug: isVercel ? debugInfo : undefined, // デバッグ情報はVercel環境のみ
   });
 });
 
