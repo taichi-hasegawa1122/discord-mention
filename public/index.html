@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord メンション数ランキング</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Discord メンション数ランキング</h1>
+    
+        </header>
+
+        <div class="status-section">
+            <div id="status" class="status-indicator">
+                <span class="status-dot"></span>
+                <span id="status-text">接続状態を確認中...</span>
+            </div>
+            <div id="server-list" class="server-list" style="display: none;">
+                <label for="server-select">サーバーを選択:</label>
+                <select id="server-select">
+                    <option value="">サーバーを選択してください</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="date-range-section" id="date-range-section" style="display: none;">
+            <h3>期間を指定</h3>
+            <div class="date-inputs">
+                <div class="date-input-group">
+                    <label for="start-date">開始日:</label>
+                    <input type="date" id="start-date">
+                </div>
+                <div class="date-input-group">
+                    <label for="end-date">終了日:</label>
+                    <input type="date" id="end-date">
+                </div>
+                <div class="date-input-group">
+                    <button type="button" class="btn btn-secondary" id="clear-dates-btn">期間をクリア</button>
+                </div>
+            </div>
+            <p class="date-hint">期間を指定しない場合は、すべてのメッセージを対象にします</p>
+        </div>
+
+        <div class="controls">
+            <button id="fetch-btn" class="btn btn-primary" disabled>
+                ランキングを取得
+            </button>
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                <span>データを取得中...</span>
+            </div>
+        </div>
+
+        <div id="progress-section" class="progress-section" style="display: none;">
+            <h3>処理進捗</h3>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="progress-text" id="progress-text">0%</div>
+            </div>
+            <div class="progress-info">
+                <div id="progress-status">処理を開始しています...</div>
+                <div id="progress-details"></div>
+            </div>
+            <div class="progress-logs" id="progress-logs">
+                <div class="log-entry">処理を開始しました...</div>
+            </div>
+        </div>
+
+        <div id="results" class="results" style="display: none;">
+            <div class="results-header">
+                <h2 id="server-name"></h2>
+                <p class="stats" id="stats"></p>
+            </div>
+            <div class="rankings-container">
+                <table id="rankings-table">
+                    <thead>
+                        <tr>
+                            <th>順位</th>
+                            <th>ユーザー</th>
+                            <th>メンション数</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rankings-body">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+

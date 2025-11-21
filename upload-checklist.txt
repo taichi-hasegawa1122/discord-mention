@@ -1,0 +1,42 @@
+エックスサーバーアップロード前チェックリスト
+==========================================
+
+□ 1. .envファイルをアップロードしない（重要！）
+   → トークンが含まれているため、絶対にアップロードしないでください
+   → サーバーの管理画面で環境変数として設定してください
+
+□ 2. アップロードするファイル
+   □ server.js
+   □ package.json
+   □ public/フォルダ全体
+     - index.html
+     - style.css
+     - app.js
+     - test.html（オプション）
+   □ .htaccess（エックスサーバー用）
+
+□ 3. アップロードしないファイル
+   □ .env（絶対にアップロードしない）
+   □ node_modules/（サーバー側でインストールする場合）
+   □ check-connection.js（開発用）
+   □ refresh-servers.js（開発用）
+   □ start.command（開発用）
+   □ .gitignore
+   □ README.md（必要に応じて）
+
+□ 4. サーバー側での作業
+   □ SSHでサーバーに接続
+   □ プロジェクトディレクトリに移動
+   □ npm install --production（node_modulesをアップロードしない場合）
+   □ 環境変数を設定（DISCORD_TOKENなど）
+   □ node server.js で起動
+   □ バックグラウンド実行の設定（nohupやpm2など）
+
+□ 5. フロントエンドの設定
+   □ public/app.jsのAPI_BASEを本番環境のURLに変更
+   □ CORS設定を確認
+
+□ 6. 動作確認
+   □ ブラウザでアクセスして動作確認
+   □ エラーログを確認
+

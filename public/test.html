@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discord Bot 接続テスト</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #53c0b7 0%, #3da89f 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #53c0b7;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .status {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #eee;
+            border-radius: 10px;
+        }
+
+        .test-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: #53c0b7;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            background: #3da89f;
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        select, input {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1em;
+            margin-bottom: 10px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #53c0b7;
+        }
+
+        .result.success {
+            border-left-color: #28a745;
+        }
+
+        .result.error {
+            border-left-color: #dc3545;
+        }
+
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #53c0b7;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Discord Bot 接続テスト</h1>
+        <p class="subtitle">トークンが正しく動作しているか確認します</p>
+
+        <div id="status" class="status">
+            <strong>接続状態:</strong> <span id="status-text">確認中...</span>
+        </div>
+
+        <div class="test-section">
+            <h2>1. サーバー情報の取得</h2>
+            <label for="server-select">サーバーを選択:</label>
+            <select id="server-select">
+                <option value="">サーバーを選択してください</option>
+            </select>
+            <button class="btn" id="test-server-btn" onclick="testServer()">サーバー情報を取得</button>
+            <div id="server-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>2. チャンネル情報の取得</h2>
+            <button class="btn" id="test-channels-btn" onclick="testChannels()" disabled>チャンネル情報を取得</button>
+            <div id="channels-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>3. メッセージの読み取り</h2>
+            <label for="channel-select">チャンネルを選択:</label>
+            <select id="channel-select">
+                <option value="">チャンネルを選択してください</option>
+            </select>
+            <label for="message-limit">取得件数:</label>
+            <input type="number" id="message-limit" value="5" min="1" max="50">
+            <button class="btn" id="test-messages-btn" onclick="testMessages()" disabled>メッセージを取得</button>
+            <div id="messages-result"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>4. 総合テスト（すべて一度に）</h2>
+            <button class="btn" id="test-all-btn" onclick="testAll()" disabled>すべてのテストを実行</button>
+            <div id="all-result"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+
+        // 初期化
+        async function init() {
+            await checkStatus();
+            setInterval(checkStatus, 5000);
+        }
+
+        // ステータス確認
+        async function checkStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+
+                const statusDiv = document.getElementById('status');
+                const statusText = document.getElementById('status-text');
+
+                if (data.connected) {
+                    statusDiv.className = 'status connected';
+                    statusText.textContent = '✅ 接続済み';
+                    
+                    // サーバーリストを更新
+                    const serverSelect = document.getElementById('server-select');
+                    serverSelect.innerHTML = '<option value="">サーバーを選択してください</option>';
+                    data.guilds.forEach(guild => {
+                        const option = document.createElement('option');
+                        option.value = guild.id;
+                        option.textContent = guild.name;
+                        serverSelect.appendChild(option);
+                    });
+
+                    // ボタンを有効化
+                    document.getElementById('test-channels-btn').disabled = false;
+                    document.getElementById('test-all-btn').disabled = false;
+                } else {
+                    statusDiv.className = 'status error';
+                    statusText.textContent = '❌ 接続されていません';
+                }
+            } catch (error) {
+                const statusDiv = document.getElementById('status');
+                const statusText = document.getElementById('status-text');
+                statusDiv.className = 'status error';
+                statusText.textContent = '❌ エラー: ' + error.message;
+            }
+        }
+
+        // サーバー情報テスト
+        async function testServer() {
+            const guildId = document.getElementById('server-select').value;
+            if (!guildId) {
+                alert('サーバーを選択してください');
+                return;
+            }
+
+            const btn = document.getElementById('test-server-btn');
+            const resultDiv = document.getElementById('server-result');
+            btn.disabled = true;
+            resultDiv.innerHTML = '<div class="loading"></div> テスト中...';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/test/guild/${guildId}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <strong>✅ 成功:</strong> ${data.message}
+                            <pre>${JSON.stringify(data.server, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <strong>❌ エラー:</strong> ${data.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>❌ エラー:</strong> ${error.message}
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // チャンネル情報テスト
+        async function testChannels() {
+            const guildId = document.getElementById('server-select').value;
+            if (!guildId) {
+                alert('まずサーバーを選択してください');
+                return;
+            }
+
+            const btn = document.getElementById('test-channels-btn');
+            const resultDiv = document.getElementById('channels-result');
+            btn.disabled = true;
+            resultDiv.innerHTML = '<div class="loading"></div> テスト中...';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/test/channels/${guildId}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    // チャンネルセレクトを更新
+                    const channelSelect = document.getElementById('channel-select');
+                    channelSelect.innerHTML = '<option value="">チャンネルを選択してください</option>';
+                    data.channels.forEach(channel => {
+                        const option = document.createElement('option');
+                        option.value = channel.id;
+                        option.textContent = channel.name;
+                        channelSelect.appendChild(option);
+                    });
+                    document.getElementById('test-messages-btn').disabled = false;
+
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <strong>✅ 成功:</strong> ${data.message}<br>
+                            <strong>チャンネル数:</strong> ${data.channelCount}
+                            <pre>${JSON.stringify(data.channels, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <strong>❌ エラー:</strong> ${data.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>❌ エラー:</strong> ${error.message}
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // メッセージ読み取りテスト
+        async function testMessages() {
+            const channelId = document.getElementById('channel-select').value;
+            if (!channelId) {
+                alert('チャンネルを選択してください');
+                return;
+            }
+
+            const limit = document.getElementById('message-limit').value;
+            const btn = document.getElementById('test-messages-btn');
+            const resultDiv = document.getElementById('messages-result');
+            btn.disabled = true;
+            resultDiv.innerHTML = '<div class="loading"></div> テスト中...';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/test/messages/${channelId}?limit=${limit}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <strong>✅ 成功:</strong> ${data.message}<br>
+                            <strong>チャンネル:</strong> ${data.channel.name}<br>
+                            <strong>取得件数:</strong> ${data.messageCount}
+                            <pre>${JSON.stringify(data.messages, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <strong>❌ エラー:</strong> ${data.error}<br>
+                            ${data.details ? `<small>${data.details}</small>` : ''}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>❌ エラー:</strong> ${error.message}
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // 総合テスト
+        async function testAll() {
+            const guildId = document.getElementById('server-select').value;
+            if (!guildId) {
+                alert('まずサーバーを選択してください');
+                return;
+            }
+
+            const btn = document.getElementById('test-all-btn');
+            const resultDiv = document.getElementById('all-result');
+            btn.disabled = true;
+            resultDiv.innerHTML = '<div class="loading"></div> すべてのテストを実行中...';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/test/all/${guildId}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            <strong>✅ 成功:</strong> ${data.message}
+                            <pre>${JSON.stringify(data.results, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            <strong>❌ エラー:</strong> ${data.error}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        <strong>❌ エラー:</strong> ${error.message}
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        // サーバー選択が変更されたらチャンネルテストを有効化
+        document.getElementById('server-select').addEventListener('change', function() {
+            const guildId = this.value;
+            document.getElementById('test-channels-btn').disabled = !guildId;
+            document.getElementById('test-all-btn').disabled = !guildId;
+        });
+
+        // 初期化
+        init();
+    </script>
+</body>
+</html>
+

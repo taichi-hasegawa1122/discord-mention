@@ -1,0 +1,11 @@
+# テキストファイルの改行コードを統一
+* text=auto
+
+# 特定のファイルタイプの設定
+*.js text eol=lf
+*.json text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+

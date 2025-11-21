@@ -1,0 +1,32 @@
+node_modules/
+.env
+.DS_Store
+*.log
+
+# 開発用ファイル
+check-connection.js
+refresh-servers.js
+start.command
+
+# エディタ設定
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS生成ファイル
+Thumbs.db
+.DS_Store
+
+# ログファイル
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 一時ファイル
+*.tmp
+*.temp
+
