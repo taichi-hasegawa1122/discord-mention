@@ -1,6 +1,7 @@
 const express = require('express');
 const { Client, GatewayIntentBits } = require('discord.js');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -15,7 +16,11 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use(express.static('public'));
+
+// 静的ファイルの配信（Vercel環境ではpublicフォルダが自動配信されるため、ローカル環境のみ）
+if (!process.env.VERCEL && !process.env.VERCEL_ENV) {
+  app.use(express.static('public'));
+}
 
 // Discordクライアントの初期化
 let discordClient = null;
@@ -646,12 +651,31 @@ app.get('/api/test/all/:guildId', async (req, res) => {
   }
 });
 
+// 静的ファイルのルーティング（Vercel環境用）
+// APIルートの後に定義することで、APIリクエストが優先される
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/test.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'test.html'));
+});
+
+// 静的ファイルの配信（CSS、JSなど）
+app.get(/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/, (req, res) => {
+  // APIルートは除外
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  res.sendFile(path.join(__dirname, 'public', req.path));
+});
+
 // サーバー起動
 async function startServer() {
   discordClient = await initializeDiscord();
   
   // Vercelではapp.listen()は不要
-  if (process.env.VERCEL) {
+  if (process.env.VERCEL || process.env.VERCEL_ENV) {
     console.log('Vercel環境で起動しました');
   } else {
     app.listen(PORT, () => {
@@ -664,10 +688,14 @@ async function startServer() {
 }
 
 // Vercel用にエクスポート
-if (process.env.VERCEL) {
+// Vercel環境の検出（VERCEL環境変数またはVERCEL_ENV）
+if (process.env.VERCEL || process.env.VERCEL_ENV) {
   // Vercel環境では非同期で初期化
   initializeDiscord().then(client => {
     discordClient = client;
+    console.log('Vercel環境: Discord Bot接続完了');
+  }).catch(error => {
+    console.error('Vercel環境: Discord Bot接続エラー', error);
   });
   module.exports = app;
 } else {
