@@ -650,13 +650,28 @@ app.get('/api/test/all/:guildId', async (req, res) => {
 async function startServer() {
   discordClient = await initializeDiscord();
   
-  app.listen(PORT, () => {
-    console.log(`サーバーが http://localhost:${PORT} で起動しました`);
-    if (!discordClient) {
-      console.warn('警告: Discord Botが接続されていません。.envファイルを確認してください。');
-    }
-  });
+  // Vercelではapp.listen()は不要
+  if (process.env.VERCEL) {
+    console.log('Vercel環境で起動しました');
+  } else {
+    app.listen(PORT, () => {
+      console.log(`サーバーが http://localhost:${PORT} で起動しました`);
+      if (!discordClient) {
+        console.warn('警告: Discord Botが接続されていません。.envファイルを確認してください。');
+      }
+    });
+  }
 }
 
-startServer();
+// Vercel用にエクスポート
+if (process.env.VERCEL) {
+  // Vercel環境では非同期で初期化
+  initializeDiscord().then(client => {
+    discordClient = client;
+  });
+  module.exports = app;
+} else {
+  // ローカル環境では通常通り起動
+  startServer();
+}
 
