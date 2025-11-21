@@ -25,7 +25,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 let discordClient = null;
 
 // 進捗情報を保存
-const progressStore = new Map();
+// Vercel環境では、グローバル変数として保存することで、複数のリクエスト間で共有できる可能性がある
+// ただし、完全には保証されないため、外部ストレージの使用を推奨
+const progressStore = global.progressStore || new Map();
+global.progressStore = progressStore;
+
+// 進捗情報ストアへのアクセスを統一するヘルパー関数
+function getProgressStore() {
+  return global.progressStore || progressStore;
+}
 
 // Discord Botの初期化
 async function initializeDiscord() {
@@ -82,7 +90,11 @@ async function countMentions(guildId, limit = 10000, progressId = null, startDat
 
   // 進捗情報の初期化
   if (progressId) {
-    progressStore.set(progressId, {
+    // グローバルストアを使用（Vercel環境対応）
+    const store = getProgressStore();
+    global.progressStore = store;
+    
+    store.set(progressId, {
       status: 'processing',
       serverName: guild.name,
       totalChannels: 0,
@@ -98,7 +110,7 @@ async function countMentions(guildId, limit = 10000, progressId = null, startDat
 
   const addLog = (message) => {
     if (progressId) {
-      const progress = progressStore.get(progressId);
+      const progress = getProgressStore().get(progressId);
       if (progress) {
         progress.logs.push({
           time: new Date().toLocaleTimeString('ja-JP'),
@@ -131,7 +143,7 @@ async function countMentions(guildId, limit = 10000, progressId = null, startDat
   );
 
   if (progressId) {
-    const progress = progressStore.get(progressId);
+    const progress = getProgressStore().get(progressId);
     if (progress) {
       progress.totalChannels = channels.size;
     }
@@ -273,7 +285,7 @@ async function countMentions(guildId, limit = 10000, progressId = null, startDat
 
   // ユーザー情報とメンション数を結合
   if (progressId) {
-    const progress = progressStore.get(progressId);
+    const progress = getProgressStore().get(progressId);
     if (progress) {
       progress.totalUsers = mentionCounts.size;
     }
@@ -333,7 +345,7 @@ async function countMentions(guildId, limit = 10000, progressId = null, startDat
 
   // 進捗情報を完了状態に更新
   if (progressId) {
-    const progress = progressStore.get(progressId);
+    const progress = getProgressStore().get(progressId);
     if (progress) {
       progress.status = 'completed';
       progress.currentChannel = '';
@@ -385,7 +397,7 @@ app.get('/api/rankings/:guildId', async (req, res) => {
         
         // 進捗情報を削除（5分後に自動削除）
         setTimeout(() => {
-          progressStore.delete(progressId);
+          getProgressStore().delete(progressId);
         }, 5 * 60 * 1000);
       })
       .catch(error => {
@@ -413,10 +425,23 @@ app.get('/api/rankings/:guildId', async (req, res) => {
 // APIエンドポイント: 進捗情報を取得
 app.get('/api/progress/:progressId', (req, res) => {
   const { progressId } = req.params;
-  const progress = progressStore.get(progressId);
+  
+  // グローバルストアから取得を試みる
+  const store = getProgressStore();
+  const progress = store.get(progressId);
   
   if (!progress) {
-    return res.status(404).json({ error: '進捗情報が見つかりません' });
+    // デバッグ情報を追加
+    console.log(`進捗情報が見つかりません: ${progressId}`);
+    console.log(`現在のストアサイズ: ${store.size}`);
+    console.log(`ストアのキー: ${Array.from(store.keys()).slice(0, 5).join(', ')}...`);
+    
+    return res.status(404).json({ 
+      error: '進捗情報が見つかりません',
+      progressId: progressId,
+      storeSize: store.size,
+      availableKeys: Array.from(store.keys()).slice(0, 10),
+    });
   }
   
   res.json(progress);
@@ -425,7 +450,7 @@ app.get('/api/progress/:progressId', (req, res) => {
 // APIエンドポイント: ランキング結果を取得（進捗IDから）
 app.get('/api/result/:progressId', (req, res) => {
   const { progressId } = req.params;
-  const progress = progressStore.get(progressId);
+  const progress = getProgressStore().get(progressId);
   
   if (!progress) {
     return res.status(404).json({ error: '進捗情報が見つかりません' });
