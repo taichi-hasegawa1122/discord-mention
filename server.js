@@ -653,21 +653,60 @@ app.get('/api/test/all/:guildId', async (req, res) => {
 
 // 静的ファイルのルーティング（Vercel環境用）
 // APIルートの後に定義することで、APIリクエストが優先される
+
+// ルートパス
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  try {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  } catch (error) {
+    console.error('index.html送信エラー:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
+// test.html
 app.get('/test.html', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'test.html'));
+  try {
+    res.sendFile(path.join(__dirname, 'public', 'test.html'));
+  } catch (error) {
+    console.error('test.html送信エラー:', error);
+    res.status(500).send('Internal Server Error');
+  }
 });
 
 // 静的ファイルの配信（CSS、JSなど）
-app.get(/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/, (req, res) => {
+app.get('/style.css', (req, res) => {
+  try {
+    res.type('text/css');
+    res.sendFile(path.join(__dirname, 'public', 'style.css'));
+  } catch (error) {
+    console.error('style.css送信エラー:', error);
+    res.status(404).send('Not found');
+  }
+});
+
+app.get('/app.js', (req, res) => {
+  try {
+    res.type('application/javascript');
+    res.sendFile(path.join(__dirname, 'public', 'app.js'));
+  } catch (error) {
+    console.error('app.js送信エラー:', error);
+    res.status(404).send('Not found');
+  }
+});
+
+// その他の静的ファイル
+app.get(/\.(png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$/, (req, res) => {
   // APIルートは除外
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'Not found' });
   }
-  res.sendFile(path.join(__dirname, 'public', req.path));
+  try {
+    res.sendFile(path.join(__dirname, 'public', req.path));
+  } catch (error) {
+    console.error('静的ファイル送信エラー:', error);
+    res.status(404).send('Not found');
+  }
 });
 
 // サーバー起動
