@@ -160,7 +160,7 @@ async function countMentions(guildId, limit = 10000, progressId = null, startDat
     processedChannels++;
     try {
       if (progressId) {
-        const progress = progressStore.get(progressId);
+        const progress = getProgressStore().get(progressId);
         if (progress) {
           progress.processedChannels = processedChannels;
           progress.currentChannel = channel.name;
@@ -241,7 +241,7 @@ async function countMentions(guildId, limit = 10000, progressId = null, startDat
 
         // 進捗を更新
         if (progressId) {
-          const progress = progressStore.get(progressId);
+          const progress = getProgressStore().get(progressId);
           if (progress) {
             progress.totalMessages = totalMessages;
           }
@@ -270,7 +270,7 @@ async function countMentions(guildId, limit = 10000, progressId = null, startDat
       addLog(`  ✅ 完了: ${channelMessages.toLocaleString()}件のメッセージ${periodInfo}、${channelMentions.toLocaleString()}件のメンションを検出`);
       
       if (progressId) {
-        const progress = progressStore.get(progressId);
+        const progress = getProgressStore().get(progressId);
         if (progress) {
           progress.totalMentions += channelMentions;
         }
@@ -310,7 +310,7 @@ async function countMentions(guildId, limit = 10000, progressId = null, startDat
       }
       
       if (progressId) {
-        const progress = progressStore.get(progressId);
+        const progress = getProgressStore().get(progressId);
         if (progress) {
           progress.processedUsers = processedUsers;
         }
@@ -390,7 +390,7 @@ app.get('/api/rankings/:guildId', async (req, res) => {
         console.log(`  結果: ${result.rankings.length}人のランキング、${result.totalMessages.toLocaleString()}件のメッセージを処理\n`);
         
         // 結果を進捗情報に保存
-        const progress = progressStore.get(progressId);
+        const progress = getProgressStore().get(progressId);
         if (progress) {
           progress.result = result;
         }
@@ -405,7 +405,7 @@ app.get('/api/rankings/:guildId', async (req, res) => {
         console.error(`❌ ランキング取得エラー (処理時間: ${elapsedTime}秒):`, error.message);
         
         if (progressId) {
-          const progress = progressStore.get(progressId);
+          const progress = getProgressStore().get(progressId);
           if (progress) {
             progress.status = 'error';
             progress.error = error.message;
