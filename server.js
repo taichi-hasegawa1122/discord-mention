@@ -443,7 +443,27 @@ app.get('/api/result/:progressId', (req, res) => {
 });
 
 // APIエンドポイント: 接続状態を確認
-app.get('/api/status', (req, res) => {
+app.get('/api/status', async (req, res) => {
+  // Vercel環境で接続されていない場合、再接続を試みる
+  if ((process.env.VERCEL || process.env.VERCEL_ENV) && (!discordClient || !discordClient.isReady())) {
+    if (!process.env.DISCORD_TOKEN) {
+      return res.json({
+        connected: false,
+        guilds: [],
+        error: 'DISCORD_TOKEN環境変数が設定されていません。Vercel Dashboardで設定してください。',
+      });
+    }
+    
+    // 再接続を試みる
+    if (!discordClient) {
+      try {
+        discordClient = await initializeDiscord();
+      } catch (error) {
+        console.error('Discord Bot再接続エラー:', error);
+      }
+    }
+  }
+  
   res.json({
     connected: discordClient !== null && discordClient.isReady(),
     guilds: discordClient && discordClient.isReady()
@@ -452,6 +472,9 @@ app.get('/api/status', (req, res) => {
           name: guild.name,
         }))
       : [],
+    error: (!discordClient || !discordClient.isReady()) && !process.env.DISCORD_TOKEN
+      ? 'DISCORD_TOKEN環境変数が設定されていません'
+      : undefined,
   });
 });
 
@@ -680,13 +703,31 @@ async function startServer() {
 // Vercel用にエクスポート
 // Vercel環境の検出（VERCEL環境変数またはVERCEL_ENV）
 if (process.env.VERCEL || process.env.VERCEL_ENV) {
-  // Vercel環境では非同期で初期化
-  initializeDiscord().then(client => {
-    discordClient = client;
-    console.log('Vercel環境: Discord Bot接続完了');
-  }).catch(error => {
-    console.error('Vercel環境: Discord Bot接続エラー', error);
-  });
+  console.log('Vercel環境で起動しました');
+  
+  // 環境変数の確認
+  if (!process.env.DISCORD_TOKEN) {
+    console.error('⚠️ 警告: DISCORD_TOKEN環境変数が設定されていません');
+    console.error('Vercel Dashboard → Settings → Environment Variables で設定してください');
+  } else {
+    console.log('✅ DISCORD_TOKEN環境変数が設定されています');
+  }
+  
+  // Vercel環境では非同期で初期化（即座に開始）
+  (async () => {
+    try {
+      const client = await initializeDiscord();
+      discordClient = client;
+      if (client) {
+        console.log('✅ Vercel環境: Discord Bot接続完了');
+      } else {
+        console.error('❌ Vercel環境: Discord Bot接続失敗');
+      }
+    } catch (error) {
+      console.error('❌ Vercel環境: Discord Bot接続エラー', error);
+    }
+  })();
+  
   module.exports = app;
 } else {
   // ローカル環境では通常通り起動
