@@ -137,10 +137,20 @@ async function countMentions(guildId, limit = 10000, progressId = null, startDat
 
   const mentionCounts = new Map(); // ユーザーID -> メンション数
 
-  // すべてのチャンネルを取得
+  // 対象チャンネルIDのリスト（指定されたチャンネルのみを処理）
+  const targetChannelIds = ['1163094347298918411'];
+  
+  // 指定されたチャンネルのみを取得
   const channels = guild.channels.cache.filter(
-    channel => channel.isTextBased() && channel.viewable
+    channel => channel.isTextBased() && channel.viewable && targetChannelIds.includes(channel.id)
   );
+  
+  if (channels.size === 0) {
+    addLog('⚠️ 警告: 対象チャンネルが見つかりませんでした');
+    addLog(`対象チャンネルID: ${targetChannelIds.join(', ')}`);
+  } else {
+    addLog(`対象チャンネル数: ${channels.size}個（ID: ${targetChannelIds.join(', ')}）`);
+  }
 
   if (progressId) {
     const progress = getProgressStore().get(progressId);
