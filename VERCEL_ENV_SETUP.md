@@ -76,3 +76,4 @@ Vercel Dashboardの「Logs」タブで、以下のログを確認できます：
 - `.env`ファイルをGitHubにコミットしないでください（`.gitignore`に追加済み）
 - トークンが漏洩した場合は、Discord Developer Portalで再生成してください
 
+

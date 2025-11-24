@@ -128,3 +128,4 @@ curl https://your-app.vercel.app/api/status
 2. エラーメッセージをコピー
 3. エラーメッセージと一緒に問題を報告
 
+
